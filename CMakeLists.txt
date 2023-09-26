@@ -20,4 +20,14 @@ add_executable(elancontrol
 pico_add_extra_outputs(elancontrol)
 
 # pull in common dependencies and additional uart hardware support
-target_link_libraries(elancontrol pico_stdlib hardware_uart)
+# if UART hardware_uart
+# add PIO here if needed hardware_pio
+# Others: hardware_flash pico_multicore pico_stdlib tinyusb_device
+target_link_libraries(elancontrol pico_stdlib)
+
+# If and when PIO used
+# pico_generate_pio_header(elancontrol ${CMAKE_CURRENT_LIST_DIR}/ir.pio)
+
+# Control UARTs to STDIO
+pico_enable_stdio_usb(elancontrol 1)
+pico_enable_stdio_uart(elancontrol 1)
