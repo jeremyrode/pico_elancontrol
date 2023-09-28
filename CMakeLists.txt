@@ -12,9 +12,9 @@ set(CMAKE_CXX_STANDARD 17)
 # Creates a pico-sdk subdirectory in our project for the libraries
 pico_sdk_init()
 
-add_executable(elancontrol
-        elancontrol.c
-)
+# Defines the intent to create an executable file (.bin, .uf2 etc.),
+# the first argument is the name, the second argument are the source files.
+add_executable(elancontrol elancontrol.c)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(elancontrol)
@@ -23,11 +23,11 @@ pico_add_extra_outputs(elancontrol)
 # if UART hardware_uart
 # add PIO here if needed hardware_pio
 # Others: hardware_flash pico_multicore pico_stdlib tinyusb_device
-target_link_libraries(elancontrol pico_stdlib)
+target_link_libraries(elancontrol pico_stdlib hardware_pio)
 
 # If and when PIO used
-# pico_generate_pio_header(elancontrol ${CMAKE_CURRENT_LIST_DIR}/ir.pio)
+pico_generate_pio_header(elancontrol ${CMAKE_CURRENT_LIST_DIR}/sendzpadcommand.pio)
 
 # Control UARTs to STDIO
 pico_enable_stdio_usb(elancontrol 1)
-pico_enable_stdio_uart(elancontrol 1)
+#pico_enable_stdio_uart(elancontrol 1)

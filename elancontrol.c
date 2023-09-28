@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
+#include <sendzpadcommand.pio.h>
 
 #define BAUD_RATE 9600
 #define DATA_BITS 8
@@ -13,16 +14,11 @@
 #define LED_PIN 25
 #define MIN_CHANNEL 17
 #define MAX_CHANNEL 22
-// Bit Banging Parameters
-#define PULSE_HIGH_WIDTH 12.5
-#define SHORT_PERIOD 5
-#define LONG_PERIOD 7.5
-
-static int chars_rxed = 0; //malavikachugh@gmail.com  timothy.c.black@gmail.com
+// Globals for interrupt handlers
+static int chars_rxed = 0;
 static uint8_t receivedChars[35];   // an array to store the received data
 static uint8_t lastBuffer[35];   // an array to store the received data
-
-
+// Handle a complete RX Status Buffer
 int sendStatusBuffer() {
   bool identical = true;
   for (int rep=0; rep<sizeof(receivedChars); rep++) { //Todo exclude toggle bit
@@ -35,7 +31,7 @@ int sendStatusBuffer() {
     printf(receivedChars); //Send new status, this aint going to work
   }
 }
-// Serial RX interrupt handler
+// Hardware UART RX interrupt handler
 void on_uart_rx() {
   uint8_t cur_rx;
   while (uart_is_readable(uart0)) {
@@ -54,7 +50,7 @@ void on_uart_rx() {
         chars_rxed++;
     }
     else if (chars_rxed == 37) { //End of data payload
-      receivedChars[chars_rxed - 3] = cur_rx;
+      receivedChars[34] = cur_rx;
       sendStatusBuffer();
       chars_rxed = 0; //Reset counter
     }
@@ -65,37 +61,7 @@ void on_uart_rx() {
   }
 }
 
-int sendZpadCommand(uint8_t channel, uint8_t command) {
-  if ((channel > MAX_CHANNEL) || (channel < MIN_CHANNEL)) {
-    printf("Channel Out Range: %d\n",channel);
-    return(-1);
-  }
-  if ((command < 0) || (command > 63)) {
-    printf("Command Out Range: %d\n",command);
-    return(-1);
-  }
-  for (int rep=0; rep<5; rep++) {
-    gpio_put(channel, 1);
-    sleep_us(PULSE_HIGH_WIDTH);
-    gpio_put(channel, 0);
-    sleep_ms(SHORT_PERIOD);
-  }
-  for (int rep=0; rep<6; rep++) {
-    gpio_put(channel, 1);
-    sleep_us(PULSE_HIGH_WIDTH);
-    gpio_put(channel, 0);
-    if (command & 1<<(5-rep)) {
-      sleep_ms(LONG_PERIOD);
-    }
-    else {
-      sleep_ms(SHORT_PERIOD);
-    }
-  }
-  gpio_put(channel, 1);
-  sleep_us(PULSE_HIGH_WIDTH);
-  gpio_put(channel, 0);
-}
-
+//Initialise everything
 int initAll() {
   //Initialise I/O
   stdio_init_all();
@@ -120,6 +86,22 @@ int initAll() {
   irq_set_enabled(UART0_IRQ, true);
   // Now enable the UART to send interrupts - RX only
   uart_set_irq_enables(uart0, true, false);
+  //PIO Init Section
+  for (state_machine_id=0; state_machine_id<4; state_machine_id++) {
+    PIO pio = pio0;
+    uint offset = pio_add_program(pio, &sendzpadcommand_program);
+    blink_program_init(pio, state_machine_id, offset, MIN_CHANNEL + state_machine_id);
+  }
+  for (state_machine_id=0; state_machine_id<2; state_machine_id++) {
+    PIO pio = pio1;
+    uint offset = pio_add_program(pio, &sendzpadcommand_program);
+    blink_program_init(pio, state_machine_id, offset, 4 + MIN_CHANNEL + state_machine_id);
+  }
+
+int channelToSM (int channel) {
+  switch (channel) {
+///TODO
+  }
 }
 
 int main() {
@@ -139,7 +121,8 @@ int main() {
     else if (in == 'S') { //ZPAD command
       channel = getchar();
       command = getchar();
-      sendZpadCommand(channel,command);
+      //To Do translate channel to pio and state_machine_id
+      pio_sm_put_blocking(pio, state_machine_id, command);
     }
   }
 }
