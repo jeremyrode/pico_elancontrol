@@ -4,7 +4,7 @@
 #include "hardware/irq.h"
 #include <sendzpadcommand.pio.h>
 
-#define BAUD_RATE 9600
+#define BAUD_RATE 19200
 #define DATA_BITS 8
 #define STOP_BITS 1
 #define PARITY    UART_PARITY_NONE
@@ -12,12 +12,33 @@
 #define UART_TX_PIN 12
 #define UART_RX_PIN 13
 #define LED_PIN 25
-#define MIN_CHANNEL 17
-#define MAX_CHANNEL 22
+// PIO Locations
+#define CHANNEL_1_PIN 17
+#define CHANNEL_2_PIN 18
+#define CHANNEL_3_PIN 19
+#define CHANNEL_4_PIN 20
+#define CHANNEL_5_PIN 21
+#define CHANNEL_6_PIN 22
+
+#define CHANNEL_1_PIO pio0
+#define CHANNEL_2_PIO pio0
+#define CHANNEL_3_PIO pio0
+#define CHANNEL_4_PIO pio0
+#define CHANNEL_5_PIO pio1
+#define CHANNEL_6_PIO pio1
+
+#define CHANNEL_1_SMID 0
+#define CHANNEL_2_SMID 1
+#define CHANNEL_3_SMID 2
+#define CHANNEL_4_SMID 3
+#define CHANNEL_5_SMID 0
+#define CHANNEL_6_SMID 1
+
 // Globals for interrupt handlers
 static int chars_rxed = 0;
 static uint8_t receivedChars[35];   // an array to store the received data
 static uint8_t lastBuffer[35];   // an array to store the received data
+
 // Handle a complete RX Status Buffer
 int sendStatusBuffer() {
   bool identical = true;
@@ -28,7 +49,7 @@ int sendStatusBuffer() {
     }
   }
   if (!identical) {
-    printf(receivedChars); //Send new status, this aint going to work
+    printf("%.35s",receivedChars); //Send new status, this aint going to work
   }
 }
 // Hardware UART RX interrupt handler
@@ -36,13 +57,13 @@ void on_uart_rx() {
   uint8_t cur_rx;
   while (uart_is_readable(uart0)) {
     cur_rx = uart_getc(uart0); // Get a char
-    if (chars_rxed == 0 && cur_rx == 0xE0u) {
+    if (chars_rxed == 0 && cur_rx == 0xE0) {
       chars_rxed = 1;
     }
-    else if (chars_rxed == 1 && cur_rx == 0x00u) {
+    else if (chars_rxed == 1 && cur_rx == 0x00) {
       chars_rxed = 2;
     }
-    else if (chars_rxed == 2 && cur_rx == 0x81u) { //End of header
+    else if (chars_rxed == 2 && cur_rx == 0x81) { //End of header
       chars_rxed = 3;
     }
     else if (chars_rxed > 3 && chars_rxed < 37) { //Data payload
@@ -62,12 +83,25 @@ void on_uart_rx() {
 }
 
 //Initialise everything
-int initAll() {
+void initAll() {
   //Initialise I/O
   stdio_init_all();
   // initialise GPIO (Green LED connected to pin 25)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
+  //PIO Init Section
+  int offset = pio_add_program(CHANNEL_1_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_1_PIO, CHANNEL_1_SMID, offset, CHANNEL_1_PIN);
+  offset = pio_add_program(CHANNEL_2_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_2_PIO, CHANNEL_2_SMID, offset, CHANNEL_2_PIN);
+  offset = pio_add_program(CHANNEL_3_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_3_PIO, CHANNEL_3_SMID, offset, CHANNEL_3_PIN);
+  offset = pio_add_program(CHANNEL_4_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_4_PIO, CHANNEL_4_SMID, offset, CHANNEL_4_PIN);
+  offset = pio_add_program(CHANNEL_5_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_5_PIO, CHANNEL_5_SMID, offset, CHANNEL_5_PIN);
+  offset = pio_add_program(CHANNEL_6_PIO, &sendzpadcommand_program);
+  sendzpadcommand_program_init(CHANNEL_6_PIO, CHANNEL_6_SMID, offset, CHANNEL_6_PIN);
   // Set up our UART with a basic baud rate.
   uart_init(uart0, 2400);
   // Set the TX and RX pins by using the function select on the GPIO
@@ -86,21 +120,32 @@ int initAll() {
   irq_set_enabled(UART0_IRQ, true);
   // Now enable the UART to send interrupts - RX only
   uart_set_irq_enables(uart0, true, false);
-  //PIO Init Section
-  for (state_machine_id=0; state_machine_id<4; state_machine_id++) {
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &sendzpadcommand_program);
-    blink_program_init(pio, state_machine_id, offset, MIN_CHANNEL + state_machine_id);
-  }
-  for (state_machine_id=0; state_machine_id<2; state_machine_id++) {
-    PIO pio = pio1;
-    uint offset = pio_add_program(pio, &sendzpadcommand_program);
-    blink_program_init(pio, state_machine_id, offset, 4 + MIN_CHANNEL + state_machine_id);
-  }
+}
 
-int channelToSM (int channel) {
+
+void sentZPadCommand(int channel,int command) {
+  command = command << 20; //Shift command to bits 20-26, where bits 27-32 are header (zeros)
   switch (channel) {
-///TODO
+    case 1:
+      pio_sm_put_blocking(CHANNEL_1_PIO, CHANNEL_1_SMID, command);
+    break;
+    case 2:
+      pio_sm_put_blocking(CHANNEL_2_PIO, CHANNEL_2_SMID, command);
+    break;
+    case 3:
+      pio_sm_put_blocking(CHANNEL_3_PIO, CHANNEL_3_SMID, command);
+    break;
+    case 4:
+      pio_sm_put_blocking(CHANNEL_4_PIO, CHANNEL_4_SMID, command);
+    break;
+    case 5:
+      pio_sm_put_blocking(CHANNEL_5_PIO, CHANNEL_5_SMID, command);
+    break;
+    case 6:
+      pio_sm_put_blocking(CHANNEL_6_PIO, CHANNEL_6_SMID, command);
+    break;
+    default:
+      printf("Invalid Channel \n");
   }
 }
 
@@ -121,8 +166,7 @@ int main() {
     else if (in == 'S') { //ZPAD command
       channel = getchar();
       command = getchar();
-      //To Do translate channel to pio and state_machine_id
-      pio_sm_put_blocking(pio, state_machine_id, command);
+      sentZPadCommand(channel, command);
     }
   }
 }
