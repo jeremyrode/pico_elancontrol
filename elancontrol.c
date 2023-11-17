@@ -12,6 +12,8 @@
 #define UART_TX_PIN 12
 #define UART_RX_PIN 13
 #define LED_PIN 25
+//38 bytes in status with 3 bytes as header (not stored)
+#define STATUS_LEN 35
 // PIO Locations
 #define CHANNEL_1_PIN 17
 #define CHANNEL_2_PIN 18
@@ -36,8 +38,10 @@
 
 // Globals for interrupt handlers
 static int chars_rxed = 0;
-static uint8_t receivedChars[35];   // an array to store the received data
-static uint8_t lastBuffer[35];   // an array to store the received data
+static uint8_t receivedChars[STATUS_LEN];   // an array to store the received data
+static uint8_t lastBuffer[STATUS_LEN];   // an array to store the received data
+
+
 
 // Handle a complete RX Status Buffer
 int sendStatusBuffer() {
@@ -49,9 +53,12 @@ int sendStatusBuffer() {
     }
   }
   if (!identical) {
-    printf("%.35s",receivedChars); //Send new status, this aint going to work
+    printf("NB: %.*s\n", STATUS_LEN, receivedChars); //Send new status, len as no null term
   }
 }
+
+
+
 // Hardware UART RX interrupt handler
 void on_uart_rx() {
   uint8_t cur_rx;
@@ -60,19 +67,22 @@ void on_uart_rx() {
     if (chars_rxed == 0 && cur_rx == 0xE0) {
       chars_rxed = 1;
     }
-    else if (chars_rxed == 1 && cur_rx == 0x00) {
+    else if (chars_rxed == 1 && cur_rx == 0xC0) { //Start of header
       chars_rxed = 2;
     }
-    else if (chars_rxed == 2 && cur_rx == 0x81) { //End of header
+    else if (chars_rxed == 2 && cur_rx == 0x0) {
       chars_rxed = 3;
     }
-    else if (chars_rxed > 3 && chars_rxed < 37) { //Data payload
-        receivedChars[chars_rxed - 3] = cur_rx;
+    else if (chars_rxed == 3 && cur_rx == 0x81) { //End of header
+      chars_rxed = 4;
+    }
+    else if (chars_rxed > 3 && chars_rxed < 39) { //Data payload
+        receivedChars[chars_rxed - 4] = cur_rx;
         chars_rxed++;
     }
-    else if (chars_rxed == 37) { //End of data payload
-      receivedChars[34] = cur_rx;
+    else if (chars_rxed == 39 && cur_rx == 0xEA) { //End of data payload
       sendStatusBuffer();
+      gpio_put(LED_PIN, !gpio_get(LED_PIN)); //Toggle LED
       chars_rxed = 0; //Reset counter
     }
     else {
@@ -80,12 +90,13 @@ void on_uart_rx() {
       chars_rxed = 0; //Reset counter
     }
   }
+//  printf("Chars_rxed: %d\n",chars_rxed);
 }
 
 //Initialise everything
 void initAll() {
   //Initialise I/O
-  stdio_init_all();
+  stdio_usb_init();
   // initialise GPIO (Green LED connected to pin 25)
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -115,6 +126,7 @@ void initAll() {
   uart_set_format(uart0, DATA_BITS, STOP_BITS, PARITY);
   // Turn on FIFOs
   uart_set_fifo_enabled(uart0, true);
+  uart_set_translate_crlf	(uart0, false);
   // And set up and enable the interrupt handlers
   irq_set_exclusive_handler(UART0_IRQ, on_uart_rx);
   irq_set_enabled(UART0_IRQ, true);
@@ -145,7 +157,7 @@ void sentZPadCommand(int channel,int command) {
       pio_sm_put_blocking(CHANNEL_6_PIO, CHANNEL_6_SMID, command);
     break;
     default:
-      printf("Invalid Channel \n");
+      //printf("Invalid Channel \n");
   }
 }
 
@@ -154,14 +166,17 @@ int main() {
   initAll();
   //Main Loop
   while(1) {
-    in = getchar(); // Get the command from USB serial
-    if (in == '1') {
+    in = getchar_timeout_us(10000000); // Get the command from USB serial
+    if (in == PICO_ERROR_TIMEOUT) {
+      printf("Getchar Timeout\n");
+    }
+    else if (in == '1') {
       gpio_put(LED_PIN, 1); // Turn on LED (testing)
-      printf("LED ON!\n"); //Test debug serial return
+      //printf("LED ON!\n"); //Test debug serial return
     }
     else if (in == '0') {
       gpio_put(LED_PIN, 0); // Turn on LED (testing)
-      printf("LED OFF!\n");
+      //printf("LED OFF!\n");
     }
     else if (in == 'S') { //ZPAD command
       channel = getchar();

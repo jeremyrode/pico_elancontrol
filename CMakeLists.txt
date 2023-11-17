@@ -23,7 +23,7 @@ pico_add_extra_outputs(elancontrol)
 # if UART hardware_uart
 # add PIO here if needed hardware_pio
 # Others: hardware_flash pico_multicore pico_stdlib tinyusb_device
-target_link_libraries(elancontrol pico_stdlib hardware_pio)
+target_link_libraries(elancontrol pico_stdlib hardware_pio hardware_uart)
 
 # If and when PIO used
 pico_generate_pio_header(elancontrol ${CMAKE_CURRENT_LIST_DIR}/sendzpadcommand.pio)

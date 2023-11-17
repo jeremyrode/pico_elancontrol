@@ -1,20 +1,16 @@
 .program sendzpadcommand
 .wrap_target
-  pull block                  ; Need to block here (not at out) when FIFO empty
-  set x, 10                   ;  Pulse Counter
-pulse_loop:
-  out y, 1                    ; Pull a shift register bit into y
+  out y, 1                    ; Pull a bit into y, blocking if no data
   jmp !y short_skip           ; If short pulse, skip long pulse setup
-  set y, 31                   ; Base for long (25 x 25 = 600 * 12.5u = 7.5 ms)
+  set y, 25                   ; Base for long (25 x 25 = 600 * 12.5u = 7.5 ms)
   jmp long_skip               ; Skip over short setup
 short_skip:
-  set y, 15                   ; Base for short (16 x 25 = 400 * 12.5u = 5 ms)
+  set y, 16                    ; Base for short (16 x 25 = 400 * 12.5u = 5 ms)
 long_skip:
   set pins, 1                 ; Go high for 1 cycle (12.5 us)
   set pins, 0                 ; Go Back Low
 delay_loop:
   jmp y-- delay_loop [24]     ; Delay for 25*y cycles
-  jmp x-- pulse_loop          ; Repeat for 6 pulses
 .wrap
 
 ; this is a raw helper function for use by the user
@@ -26,7 +22,7 @@ delay_loop:
     // Use set to toggle the pin
     sm_config_set_set_pins(&config, pin, 1);
     //We have 12 bits per command
-    sm_config_set_out_shift(&config, false, false, 12); //Output shift register config
+    sm_config_set_out_shift(&config, false, true, 12); //Output shift register config
     //                    config, shift_right, Autopull, bits per word
     // sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX); //Joins RX&TX FIFOs
     // 125 MHz / 1562 = 80.02 kHz is 12.496 us clock period
