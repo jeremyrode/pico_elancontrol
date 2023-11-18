@@ -1,7 +1,7 @@
 "use strict";
 const fs = require('fs');
 const { SerialPort } = require('serialport');
-const { ByteLengthParser } = require('@serialport/parser-byte-length')
+const { Delimiter } = require('@serialport/parser-delimiter');
 
 
 // Optional. You will see this name in eg. 'ps' or 'top' command
@@ -21,7 +21,7 @@ let status = {
   volume: [0,0,0,0,0,0],
   mute: [0,0,0,0,0,0],
   input: [0,0,0,0,0,0],
-  on: false
+  on: true
 };
 const slider_commands = [[],[],[],[],[],[]]; //Stores timeout events associated with a slider
 let last_update = 0; //Timestamp of last serial update
@@ -139,10 +139,7 @@ function extractData(sdata) {
 //The serial data is broadcast regardless of status change, see if data is different
 function onDiffData(sdata) {
   last_update = Date.now(); //We are getting serial data, note the time
-  if (status.on == false) { //If we have differing data, we turned on!
-    status.on = true; // We're on now!
-    onStatusCheck = setInterval(isOn,2000); // Check to see if we're off every 2s
-  }
+  combinedLog('Got Data!');
   var new_data = extractData(sdata); // Get the new status
   status = new_data; //Store new status
   updateClients();
@@ -161,18 +158,7 @@ function updateClients() {
     }
   }
 }
-//When the system is off, we get no serial data
-function isOn() {
-  if (Date.now() - last_update > 2000) { //If no serial data for 2s, we off
-    //console.log('System is Off');
-    status.volume = [0,0,0,0,0,0];
-    status.mute = [0,0,0,0,0,0];
-    status.input = [0,0,0,0,0,0];
-    status.on = false;
-    updateClients();
-    clearInterval(onStatusCheck); //No need to check anymore we're off
-  }
-}
+
 //Monitor the serial port for system status
 const port = new SerialPort({ path: '/dev/ttyACM0', baudRate: 921600 });
 
@@ -180,7 +166,8 @@ const parser = port.pipe(new ByteLengthParser({ length: 35 }));
 parser.on('data', function(data) {onDiffData(data);});
 
 function send_zpad_command_serial(zone, channel) {
-  port.port.write(Buffer.from('S' + zone + channel,'ascii'), function(err) {
+  combinedLog(Buffer.from('S' + zone + channel));
+  port.port.write(Buffer.from('S' + zone + channel), function(err) {
     if (err) {
       return console.log("Error on write: ", err.message);
     }
