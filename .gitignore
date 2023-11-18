@@ -1,4 +1,4 @@
 build/*
 testing/build/*
-nodejsserver/node_modules/*
-utils/node_modules/*
+nodejsserver/node_modules/**
+utils/node_modules/**
