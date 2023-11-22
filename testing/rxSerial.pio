@@ -1,0 +1,22 @@
+.program rxSerial
+.wrap_target
+  in pins, 1                ;
+.wrap
+
+; this is a raw helper function for use by the user
+% c-sdk {
+  static inline void rxSerial_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_gpio_init(pio, pin);  // Set this pin's GPIO function (connect PIO to the pad)
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false); // Set to input
+    pio_sm_config config = rxSerial_program_get_default_config(offset); // Define a config object
+    // Setup input pin
+    sm_config_set_in_pins(&config, pin);
+    sm_config_set_in_shift(&config, false, true, 8); //left shift 8 bits
+    //                    config, shift_right, Autopull, bits per word
+    sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX); //Joins RX&TX FIFOs
+    // 19200 Baud / 125 MHz * 10 samples = 0.001536
+    sm_config_set_clkdiv(&config, 0.001536);
+    pio_sm_init(pio, sm, offset, &config); // Apply the configuration
+    pio_sm_set_enabled(pio, sm, true); // Set the state machine running
+  }
+%}

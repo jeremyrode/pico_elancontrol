@@ -50,7 +50,6 @@ function onData(sdata) {
 
 }
 
-
 function send_zpad_command_serial(zone, channel) {
   port.port.write(Buffer.from('S' + zone + channel,'ascii'), function(err) {
     if (err) {
@@ -59,15 +58,12 @@ function send_zpad_command_serial(zone, channel) {
   });
 }
 
-
 //Monitor the serial port for system status
 const port = new SerialPort({ path: '/dev/ttyACM0', baudRate: 14400});
 
 const parser = port.pipe(new DelimiterParser({ delimiter: Buffer.from('E0C00081','hex') }));
 
 parser.on('data', function(data) {onData(data);});
-
-
 
 //When the system is off, we get no serial data
 function isOn() {

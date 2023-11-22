@@ -1,14 +1,14 @@
 "use strict";
 const fs = require('fs');
 const { SerialPort } = require('serialport');
-const { Delimiter } = require('@serialport/parser-delimiter');
-
+const { DelimiterParser } = require('@serialport/parser-delimiter');
 
 // Optional. You will see this name in eg. 'ps' or 'top' command
 process.title = 'elan-websocket';
 // Port where we'll run the websocket server
 const webSocketsServerPort = 1338;
 const LOG_FILE = '/home/jprode/ElanControlLog.txt';
+const STATUS_LOG = '/home/jprode/ElanStatusLog.bin';
 const ELAN_POWER = 0;
 const ELAN_VOLUP = 4;
 const ELAN_VOLDOWN = 36;
@@ -16,6 +16,7 @@ const ELAN_VOLDOWN = 36;
 const webSocketServer = require('websocket').server;
 const http = require('http');
 const logfile = fs.createWriteStream(LOG_FILE, {flags:'a'});
+const commandlogfile = fs.createWriteStream(STATUS_LOG);
 // Status Object
 let status = {
   volume: [0,0,0,0,0,0],
@@ -25,9 +26,10 @@ let status = {
 };
 const slider_commands = [[],[],[],[],[],[]]; //Stores timeout events associated with a slider
 let last_update = 0; //Timestamp of last serial update
-const old_data = Buffer.alloc(35); //Serial buffer to compair for changes
+let oldStatus = Buffer.alloc(37,0);
 const clients = []; //Who's connected
 let onStatusCheck; //Interval that checks if system is still on
+
 //  HTTP server
 const server = http.createServer(function(request, response) {
     combinedLog('Received request for ' + request.url);
@@ -55,7 +57,8 @@ wsServer.on('request', function(request) {
 		clients.splice(index, 1);
 	});
 });
-//Wesocket Message
+
+// Wesocket Message
 function onClientMessage(message) {
   if (message.type === 'utf8') {
     const commnds = message.utf8Data.split(":"); //Yes, I should have used JSON
@@ -97,6 +100,7 @@ function onClientMessage(message) {
   }
   combinedLog('Got non-utf8 command from client');
 }
+
 //Recusive funtion to get volume to a desired value based on slider change
 function setDesiredVol(zone,desired_vol,num_rec) {
   if (desired_vol == status.volume[zone-1]) { //If we reach target, stop
@@ -120,6 +124,18 @@ function cancelPendingSliders(zone) {
   clearTimeout(slider_commands[zone-1]);
   slider_commands[zone-1] = []; //clear the array out
 }
+
+//compair data to see if anything we care about has changed
+function diffData(data1,data2) {
+  let is_diff = false;
+  for (let i = 0; i < 6; i++) {
+    is_diff = is_diff || (data1.volume[i] !== data2.volume[i]);
+    is_diff = is_diff || (data1.mute[i] !== data2.mute[i]);
+    is_diff = is_diff || (data1.input[i] !== data2.input[i]);
+  }
+  return is_diff;
+}
+
 //Translate binary status to our status variables
 function extractData(sdata) {
   const cstatus = {
@@ -137,16 +153,25 @@ function extractData(sdata) {
 }
 
 //The serial data is broadcast regardless of status change, see if data is different
-function onDiffData(sdata) {
-  last_update = Date.now(); //We are getting serial data, note the time
-  combinedLog('Got Data!');
-  var new_data = extractData(sdata); // Get the new status
-  status = new_data; //Store new status
-  updateClients();
+function onData(sdata) {
+  last_update = Date.now(); //We are getting data, note the time
+  switch (sdata[sdata.length-1]) {
+    case 0xEA:
+      status = extractData(sdata); // Get the new status
+      if (diffData(new_data,status)) { // If new status is different
+        status = new_data; //Store new status
+        process.stdout.write("Updating Clients!!\n")
+        updateClients();
+      }
+      break;
+    case 0xEF:
+      combinedLog("Pico: " + sdata.toString('utf8',0,sdata.length-2));
+      break;
+    default:
+      combinedLog("Invalid Footer from Pico");
+  }
 }
 
-setInterval(updateClients,10000); // Force an update every 10s, will also help cull stale clients
-//Send the new status to the client list when things change
 function updateClients() {
   const json = JSON.stringify(status); // encode new status
   for (let i=0; i < clients.length; i++) { //Send the status to clients
@@ -160,20 +185,19 @@ function updateClients() {
 }
 
 //Monitor the serial port for system status
-const port = new SerialPort({ path: '/dev/ttyACM0', baudRate: 921600 });
+const port = new SerialPort({ path: '/dev/ttyACM0', baudRate: 14400 });
 
-const parser = port.pipe(new ByteLengthParser({ length: 35 }));
-parser.on('data', function(data) {onDiffData(data);});
+const parser = port.pipe(new DelimiterParser({ delimiter: Buffer.from('E0C00081','hex') }));
+
+parser.on('data', function(data) {onData(data);});
 
 function send_zpad_command_serial(zone, channel) {
-  combinedLog(Buffer.from('S' + zone + channel));
-  port.port.write(Buffer.from('S' + zone + channel), function(err) {
+  port.write([67, zone, channel], function(err) {
     if (err) {
-      return console.log("Error on write: ", err.message);
+      return console.log("Error on serial write: ", err.message);
     }
   });
 }
-
 
 //translate from zone to RasberryPi GPIO channel
 function zonetoChannel(zone) {
@@ -182,7 +206,7 @@ function zonetoChannel(zone) {
 
 //Remove the annoying volume missing codes from slider targers
 function removeMissingCodes(vol) {
-  switch (vol) {
+  switch (vol) { /* Don't do this for now
     case 4:
       return 3;
     break;
@@ -230,7 +254,7 @@ function removeMissingCodes(vol) {
     break;
     case 47:
       return 46;
-    break;
+    break; */
 		default:
 		  return vol;
 	}
