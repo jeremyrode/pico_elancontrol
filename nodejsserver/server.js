@@ -26,9 +26,11 @@ let status = {
 };
 const slider_commands = [[],[],[],[],[],[]]; //Stores timeout events associated with a slider
 let last_update = 0; //Timestamp of last serial update
-let oldStatus = Buffer.alloc(37,0);
+let oldStatus = status;
 const clients = []; //Who's connected
 let onStatusCheck; //Interval that checks if system is still on
+
+let statusCount = 0; //Count when printing status, temportary
 
 //  HTTP server
 const server = http.createServer(function(request, response) {
@@ -71,6 +73,9 @@ function onClientMessage(message) {
       }
       cancelPendingSliders(zone);
       send_zpad_command_serial(zonetoChannel(zone),command); //Calls my C bitbanger
+      if (command == ELAN_VOLUP || command == ELAN_VOLDOWN) {
+        send_zpad_command_serial(zonetoChannel(zone),command); //double up vol
+      }
       return;
     }
     if (commnds.length == 3) { //Two colons, it's a slider command
@@ -88,7 +93,7 @@ function onClientMessage(message) {
       //Set recustion limit to a bit more than we need to handle missing vol codes
       const expected_steps = Math.abs(desired_vol - status.volume[zone-1]) + 6; //Increased for debugging
       if (status.input[zone-1] != 1) { //if not on, turn on, but need delay
-        send_zpad_command_serial(zonetoChannel(zone),ELAN_POWER);
+        (zonetoChannel(zone),ELAN_POWER);
         slider_commands[zone-1] = setTimeout(setDesiredVol,250,zone,removeMissingCodes(desired_vol),expected_steps); //delay
       }
       else {
@@ -112,10 +117,10 @@ function setDesiredVol(zone,desired_vol,num_rec) {
   }
   //console.log('Zone: ' + zone + ' Desired: ' + desired_vol + ' Current: ' + status.volume[zone-1]);
   if ((desired_vol - status.volume[zone-1]) > 0) {
-    send_zpad_command_serial(zonetoChannel(zone),ELAN_VOLUP); //Vol up
+    (zonetoChannel(zone),ELAN_VOLUP); //Vol up
   }
   else { //Vol Down
-    send_zpad_command_serial(zonetoChannel(zone),ELAN_VOLDOWN); //Vol down
+    (zonetoChannel(zone),ELAN_VOLDOWN); //Vol down
   }
   slider_commands[zone-1] = setTimeout(setDesiredVol,250,zone,desired_vol,num_rec-1); //call ourself in a bit
 }
@@ -158,9 +163,9 @@ function onData(sdata) {
   switch (sdata[sdata.length-1]) {
     case 0xEA:
       status = extractData(sdata); // Get the new status
-      if (diffData(new_data,status)) { // If new status is different
-        status = new_data; //Store new status
-        process.stdout.write("Updating Clients!!\n")
+      if (diffData(oldStatus,status)) { // If new status is different
+        oldStatus = status; //Store new status
+        process.stdout.write("Updating Clients!!" + ++statusCount + "\n")
         updateClients();
       }
       break;
@@ -191,8 +196,8 @@ const parser = port.pipe(new DelimiterParser({ delimiter: Buffer.from('E0C00081'
 
 parser.on('data', function(data) {onData(data);});
 
-function send_zpad_command_serial(zone, channel) {
-  port.write([67, zone, channel], function(err) {
+function send_zpad_command_serial(zone, command) {
+  port.write([67, zone, command], function(err) {
     if (err) {
       return console.log("Error on serial write: ", err.message);
     }
@@ -201,12 +206,34 @@ function send_zpad_command_serial(zone, channel) {
 
 //translate from zone to RasberryPi GPIO channel
 function zonetoChannel(zone) {
-  return zone; //Take this out for now
+  return zone;
+  switch (zone) {
+    case 1:
+      return 5;
+    break;
+    case 2:
+      return 1;
+    break;
+    case 3:
+      return 4;
+    break;
+    case 4:
+      return 2;
+    break;
+    case 5:
+      return 6;
+    break
+    case 6:
+      return 3;
+    break;
+    default:
+      return 0;
+  }
 }
 
 //Remove the annoying volume missing codes from slider targers
 function removeMissingCodes(vol) {
-  switch (vol) { /* Don't do this for now
+  switch (vol) {
     case 4:
       return 3;
     break;
@@ -254,7 +281,7 @@ function removeMissingCodes(vol) {
     break;
     case 47:
       return 46;
-    break; */
+    break;
 		default:
 		  return vol;
 	}

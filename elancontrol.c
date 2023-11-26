@@ -145,7 +145,7 @@ void sentZPadCommand(int channel, int command) {
     sendError("Invalid Command\n");
     return;
   }
-  command = command << 20; //Shift command to bits 20-26, where bits 27-32 are header (zeros)
+  command = command << 21; //Shift command
   switch (channel) {
     case 1:
       pio_sm_put_blocking(CHANNEL_1_PIO, CHANNEL_1_SMID, command);

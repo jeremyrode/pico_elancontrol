@@ -1,16 +1,22 @@
 .program sendzpadcommand
 .wrap_target
+  pull                        ; Can't autopull otherwise !OSRE is not false on back to back
+  set y, 31                   ; Do a command-to-command delay
+  intial_delay:
+  jmp y-- intial_delay [31]   ; Delay for 31*31 cycles  (64 ms)
+  main_loop:
   out y, 1                    ; Pull a bit into y, blocking if no data
   jmp !y short_skip           ; If short pulse, skip long pulse setup
-  set y, 25                   ; Base for long (25 x 25 = 600 * 12.5u = 7.5 ms)
+  set y, 21                   ; Base for long
   jmp long_skip               ; Skip over short setup
 short_skip:
-  set y, 16                    ; Base for short (16 x 25 = 400 * 12.5u = 5 ms)
+  set y, 13                   ; Base for short
 long_skip:
-  set pins, 1                 ; Go high for 1 cycle (12.5 us)
+  set pins, 1                 ; Go high for 1 cycle
   set pins, 0                 ; Go Back Low
 delay_loop:
-  jmp y-- delay_loop [24]     ; Delay for 25*y cycles
+  jmp y-- delay_loop [4]     ; Delay for 5*y cycles
+  jmp !OSRE main_loop         ; Skip over the initial delay
 .wrap
 
 ; this is a raw helper function for use by the user
@@ -22,11 +28,12 @@ delay_loop:
     // Use set to toggle the pin
     sm_config_set_set_pins(&config, pin, 1);
     //We have 12 bits per command
-    sm_config_set_out_shift(&config, false, true, 12); //Output shift register config
+    sm_config_set_out_shift(&config, false, false, 12); //Output shift register config
     //                    config, shift_right, Autopull, bits per word
     // sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX); //Joins RX&TX FIFOs
     // 125 MHz / 1562 = 80.02 kHz is 12.496 us clock period
-    sm_config_set_clkdiv_int_frac(&config,1562,0); // Set clock divider
+    // 8325 / 125 MHz  = 66.6 us clock period
+    sm_config_set_clkdiv_int_frac(&config, 8325, 0); // Set clock divider
     pio_sm_init(pio, sm, offset, &config); // Apply the configuration
     pio_sm_set_enabled(pio, sm, true); // Set the state machine running
   }
