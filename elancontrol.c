@@ -12,8 +12,6 @@
 #define UART_TX_PIN 12
 #define UART_RX_PIN 13
 #define LED_PIN 25
-//40 bytes in status with 3 bytes as header, 1 in footer (not stored)
-#define STATUS_LEN 35
 #define CHANNEL_1_PIN 17
 #define CHANNEL_2_PIN 18
 #define CHANNEL_3_PIN 19
@@ -42,10 +40,18 @@
 #define CHANNEL_5_SMID 0
 #define CHANNEL_6_SMID 1
 //Send a keepalive even if nothing is changing
+//40 bytes in status with 3 bytes as header, 1 in footer (not stored)
+#define STATUS_LEN 35
 #define KEEPALIVE_INTERVAL 500
 #define ZPAD_COMMAND_HEADER 67
+#define ELAN_VOLUP  4
+#define ELAN_VOLDOWN 36
 // Global to keep track of same status
 static int identicalStatusRecieved = 0;
+static int volume[6];
+static bool mute[6];
+static int input[6];
+
 // Constants for status data header and footers
 const char header[] = {0xE0, 0xC0, 0x00, 0x81};
 const char data_footer = 0xEA;
@@ -60,16 +66,28 @@ void sendError(const char *errString) {
   putchar_raw(err_footer);
 }
 
+void extractData(unsigned char receivedChars[]) {
+  //lets send it
+  for (int i=0; i < sizeof(header); i++) {
+    putchar_raw(header[i]); // Send the header
+  }
+  for (int i=0; i < STATUS_LEN; i++) {
+    putchar_raw(receivedChars[i]); //payload
+  }
+  putchar_raw(data_footer); //footer to indicate status
+  gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED on update sent
+}
+
 // Hardware UART RX interrupt handler
 void on_uart_rx() {
   char cur_rx;
   static int charsRXed = 0;
   static bool identical = true; // Keep track if pattern is identical
-  static char receivedChars[STATUS_LEN];   // an array to store the received data
-  static char lastBuffer[STATUS_LEN];   // an array to store the last received data
+  static unsigned char receivedChars[STATUS_LEN];   // an array to store the received data
+  static unsigned char lastBuffer[STATUS_LEN];   // an array to store the last received data
   while (uart_is_readable(uart0)) {
     cur_rx = uart_getc(uart0); // Get a char
-    if (charsRXed < 4 && cur_rx == header[charsRXed]) {
+    if (charsRXed < 4 && cur_rx == header[charsRXed]) { //Header
       charsRXed++;
     }
     else if (charsRXed > 3 && charsRXed < 39) { //Data payload
@@ -81,22 +99,18 @@ void on_uart_rx() {
         }
     }
     else if (charsRXed == 39 && cur_rx == data_footer) { //End of data payload
-      if (!identical) { //If different, lets send it
-        for (int i=0; i < sizeof(header); i++) {
-          putchar_raw(header[i]); // Send the header
-        }
-        for (int i=0; i < sizeof(receivedChars); i++) {
-          putchar_raw(receivedChars[i]); //payload
-        }
-        putchar_raw(data_footer); //footer to indicate status
-        identical = true; //Reset identical
+      if (!identical || identicalStatusRecieved > KEEPALIVE_INTERVAL) {
+        extractData(receivedChars); //Send the new status
         identicalStatusRecieved = 0; //Reset counter when status is sent
-        gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED on update
       }
-      charsRXed = 0; //Reset counter
+      else {
+        identicalStatusRecieved++; //Counter for keepalive
+      }
+      charsRXed = 0; //Reset chars recieved counter
+      identical = true; //Reset identical flag
     }
-    else {
-      sendError("Malformatted Seraial Status Message\n");
+    else { //We did not match expected data pattern
+      sendError("Malformatted Serial Status Message\n");
       charsRXed = 0; //Reset counter
       identical = true; //Reset identical
     }
@@ -145,7 +159,7 @@ void sentZPadCommand(int channel, int command) {
     sendError("Invalid Command\n");
     return;
   }
-  command = command << 21; //Shift command
+  command = command << 21; //Shift command to upper bits with 6 zero header
   switch (channel) {
     case 1:
       pio_sm_put_blocking(CHANNEL_1_PIO, CHANNEL_1_SMID, command);
@@ -193,6 +207,9 @@ int main() {
         continue;
       }
       sentZPadCommand(channel, command);
+      if (command == ELAN_VOLUP || command == ELAN_VOLDOWN) {
+        sentZPadCommand(channel, command); // Volume commands should be 2X
+      }
     }
     else {
       sprintf(errmsg,"Invalid Command: %d\n",in);

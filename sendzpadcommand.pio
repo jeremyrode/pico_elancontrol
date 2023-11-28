@@ -1,22 +1,22 @@
 .program sendzpadcommand
 .wrap_target
-  pull                        ; Can't autopull otherwise !OSRE is not false on back to back
-  set y, 31                   ; Do a command-to-command delay
+  pull                        ; Can't autopull otherwise !OSRE is never false
+  set y, 31                   ; Setup for a command-to-command delay
   intial_delay:
   jmp y-- intial_delay [31]   ; Delay for 31*31 cycles  (64 ms)
   main_loop:
-  out y, 1                    ; Pull a bit into y, blocking if no data
+  out y, 1                    ; shift a bit into y
   jmp !y short_skip           ; If short pulse, skip long pulse setup
-  set y, 21                   ; Base for long
+  set y, 21                   ; Setup for long delay (7.5 ms)
   jmp long_skip               ; Skip over short setup
 short_skip:
-  set y, 13                   ; Base for short
+  set y, 13                   ; Setup for short delay (5 ms)
 long_skip:
   set pins, 1                 ; Go high for 1 cycle
   set pins, 0                 ; Go Back Low
 delay_loop:
-  jmp y-- delay_loop [4]     ; Delay for 5*y cycles
-  jmp !OSRE main_loop         ; Skip over the initial delay
+  jmp y-- delay_loop [4]      ; Delay for 5*y cycles (+5 cycles for other code)
+  jmp !OSRE main_loop         ; If more bits, do the main loop
 .wrap
 
 ; this is a raw helper function for use by the user
@@ -31,7 +31,6 @@ delay_loop:
     sm_config_set_out_shift(&config, false, false, 12); //Output shift register config
     //                    config, shift_right, Autopull, bits per word
     // sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX); //Joins RX&TX FIFOs
-    // 125 MHz / 1562 = 80.02 kHz is 12.496 us clock period
     // 8325 / 125 MHz  = 66.6 us clock period
     sm_config_set_clkdiv_int_frac(&config, 8325, 0); // Set clock divider
     pio_sm_init(pio, sm, offset, &config); // Apply the configuration

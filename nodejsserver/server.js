@@ -71,11 +71,8 @@ function onClientMessage(message) {
         combinedLog('malformatted command: ' + message.utf8Data);
         return;
       }
-      cancelPendingSliders(zone);
-      send_zpad_command_serial(zonetoChannel(zone),command); //Calls my C bitbanger
-      if (command == ELAN_VOLUP || command == ELAN_VOLDOWN) {
-        send_zpad_command_serial(zonetoChannel(zone),command); //double up vol
-      }
+      cancelPendingSliders(zone); // Stop any sliders on a vol command
+      send_zpad_command_serial(zonetoChannel(zone),command); // Send command
       return;
     }
     if (commnds.length == 3) { //Two colons, it's a slider command
@@ -83,7 +80,7 @@ function onClientMessage(message) {
       const zone = parseInt(commnds[1]);
       let desired_vol = parseInt(commnds[2]);
       if (desired_vol < 0 || desired_vol > 48 || zone < 1 || zone > 6) {
-        combinedLog('malformatted command: ' + message.utf8Data);
+        combinedLog('malformatted slider command: ' + message.utf8Data);
         return;
       }
       cancelPendingSliders(zone); //If we're already sliding, cancel
