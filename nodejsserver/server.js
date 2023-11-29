@@ -22,15 +22,11 @@ let status = {
   volume: [0,0,0,0,0,0],
   mute: [0,0,0,0,0,0],
   input: [0,0,0,0,0,0],
-  on: true
+  on: false
 };
-const slider_commands = [[],[],[],[],[],[]]; //Stores timeout events associated with a slider
 let last_update = 0; //Timestamp of last serial update
-let oldStatus = status;
 const clients = []; //Who's connected
 let onStatusCheck; //Interval that checks if system is still on
-
-let statusCount = 0; //Count when printing status, temportary
 
 //  HTTP server
 const server = http.createServer(function(request, response) {
@@ -59,7 +55,6 @@ wsServer.on('request', function(request) {
 		clients.splice(index, 1);
 	});
 });
-
 // Wesocket Message
 function onClientMessage(message) {
   if (message.type === 'utf8') {
@@ -71,11 +66,8 @@ function onClientMessage(message) {
         combinedLog('malformatted command: ' + message.utf8Data);
         return;
       }
-      cancelPendingSliders(zone); // Stop any sliders on a vol command
-      send_zpad_command_serial(zonetoChannel(zone),command); // Send command
-      return;
-    }
-    if (commnds.length == 3) { //Two colons, it's a slider command
+      send_zpad_command_serial(zone, command); // Send command
+    } else if (commnds.length == 3) { //Two colons, it's a slider command
       //console.log('Got slider command: ' + message.utf8Data);
       const zone = parseInt(commnds[1]);
       let desired_vol = parseInt(commnds[2]);
@@ -83,152 +75,97 @@ function onClientMessage(message) {
         combinedLog('malformatted slider command: ' + message.utf8Data);
         return;
       }
-      cancelPendingSliders(zone); //If we're already sliding, cancel
       if (desired_vol > 33) { //Lets limit someone from flooring the vol via slider
         desired_vol = 33;
       }
-      //Set recustion limit to a bit more than we need to handle missing vol codes
-      const expected_steps = Math.abs(desired_vol - status.volume[zone-1]) + 6; //Increased for debugging
-      if (status.input[zone-1] != 1) { //if not on, turn on, but need delay
-        (zonetoChannel(zone),ELAN_POWER);
-        slider_commands[zone-1] = setTimeout(setDesiredVol,250,zone,removeMissingCodes(desired_vol),expected_steps); //delay
-      }
-      else {
-          setDesiredVol(zone,removeMissingCodes(desired_vol),expected_steps);
-      }
-      return;
+      send_slider_command_serial(zone,removeMissingCodes(desired_vol));
+    } else {
+      combinedLog('malformatted # of colons: ' + message.utf8Data);
     }
-    combinedLog('Got short malformatted command from client: ' + message.utf8Data)
+  } else {
+    combinedLog('Got non-utf8 command from client: ' + message);
   }
-  combinedLog('Got non-utf8 command from client');
-}
-
-//Recusive funtion to get volume to a desired value based on slider change
-function setDesiredVol(zone,desired_vol,num_rec) {
-  if (desired_vol == status.volume[zone-1]) { //If we reach target, stop
-    return;
-  }
-  if (num_rec < 0) { //There are missing volume codes that cause inf recursion
-    combinedLog('We hit the recursion limit trying to get to ' + desired_vol);
-    return;
-  }
-  //console.log('Zone: ' + zone + ' Desired: ' + desired_vol + ' Current: ' + status.volume[zone-1]);
-  if ((desired_vol - status.volume[zone-1]) > 0) {
-    (zonetoChannel(zone),ELAN_VOLUP); //Vol up
-  }
-  else { //Vol Down
-    (zonetoChannel(zone),ELAN_VOLDOWN); //Vol down
-  }
-  slider_commands[zone-1] = setTimeout(setDesiredVol,250,zone,desired_vol,num_rec-1); //call ourself in a bit
-}
-//Cancel any pending changes for a given channel
-function cancelPendingSliders(zone) {
-  clearTimeout(slider_commands[zone-1]);
-  slider_commands[zone-1] = []; //clear the array out
-}
-
-//compair data to see if anything we care about has changed
-function diffData(data1,data2) {
-  let is_diff = false;
-  for (let i = 0; i < 6; i++) {
-    is_diff = is_diff || (data1.volume[i] !== data2.volume[i]);
-    is_diff = is_diff || (data1.mute[i] !== data2.mute[i]);
-    is_diff = is_diff || (data1.input[i] !== data2.input[i]);
-  }
-  return is_diff;
 }
 
 //Translate binary status to our status variables
 function extractData(sdata) {
-  const cstatus = {
-    volume: [0,0,0,0,0,0],
-    mute: [0,0,0,0,0,0],
-    input: [0,0,0,0,0,0],
-    on: true
-  };
+  const cstatus = status;
   for (let i = 0; i < 6; i++) {
-    cstatus.volume[i] = 48 - sdata[i*6+2] & 0b00111111; //Volume is sent as a 6-bit attenuation value in LSBs
-    cstatus.mute[i] = (sdata[i*6] & 0b00010000) >>> 4; // Mute is just a bit
-    cstatus.input[i] = sdata[i*6] & 0b00000111; // Status is 3 LSBs
+    cstatus.volume[i] = sdata[3*i]; //Volume is sent as a 6-bit attenuation value in LSBs
+    cstatus.mute[i] = sdata[3*i+1]; // Mute is just a bit
+    cstatus.input[i] = sdata[3*i+2]; // Status is 3 LSBs
   }
   return cstatus;
 }
-
 //The serial data is broadcast regardless of status change, see if data is different
 function onData(sdata) {
-  last_update = Date.now(); //We are getting data, note the time
-  switch (sdata[sdata.length-1]) {
-    case 0xEA:
-      status = extractData(sdata); // Get the new status
-      if (diffData(oldStatus,status)) { // If new status is different
-        oldStatus = status; //Store new status
-        process.stdout.write("Updating Clients!!" + ++statusCount + "\n")
-        updateClients();
+  switch (sdata[sdata.length-1]) { //Footer tells us what kind of message
+    case 0xEA: //STATUS Message
+      last_update = Date.now(); //We are getting data, note the time
+      if (status.on == false) { //If we have differing data, we turned on!
+        status.on = true; // We're on now!
+        onStatusCheck = setInterval(isOn,10000); // Check to see if we're off
       }
+      status = extractData(sdata); // Get the new status
+      updateClients();
       break;
-    case 0xEF:
+    case 0xEF: //Error Log
       combinedLog("Pico: " + sdata.toString('utf8',0,sdata.length-2));
       break;
     default:
       combinedLog("Invalid Footer from Pico");
   }
 }
-
+//Send updates to connected clients, remove if not connected (Andriod)
 function updateClients() {
-  const json = JSON.stringify(status); // encode new status
-  for (let i=0; i < clients.length; i++) { //Send the status to clients
+  const json_status = JSON.stringify(status); // encode new status
+  for (let i=0; i < clients.length; i++) { //for all connected clients
     if (clients[i].connected) { //only if client is connected
-      clients[i].sendUTF(json);
+      clients[i].sendUTF(json_status); //Send the status to clients
     }
     else {
       clients.splice(i, 1); // Remove the client if not connected
     }
   }
 }
-
+//When the system is off, we get no keepalives from the pico
+function isOn() {
+  if (Date.now() - last_update > 10000) { //If no serial data for 10s, we off
+    console.log('System is Off');
+    status.volume = [0,0,0,0,0,0];
+    status.mute = [0,0,0,0,0,0];
+    status.input = [0,0,0,0,0,0];
+    status.on = false;
+    updateClients();
+    clearInterval(onStatusCheck); //No need to check anymore we're off
+  }
+}
 //Monitor the serial port for system status
 const port = new SerialPort({ path: '/dev/ttyACM0', baudRate: 14400 });
-
+//Parse with the header (same as the Elan, why not)
 const parser = port.pipe(new DelimiterParser({ delimiter: Buffer.from('E0C00081','hex') }));
-
+//Call onData when we get a header
 parser.on('data', function(data) {onData(data);});
-
+//Request the pico to send a zPad command
 function send_zpad_command_serial(zone, command) {
+  combinedLog('Sending Zpad zone: ' + zone + ' and command: ' + command);
   port.write([67, zone, command], function(err) {
     if (err) {
-      return console.log("Error on serial write: ", err.message);
+      combinedLog("Error on serial write: " + err.message);
+      return;
     }
   });
 }
-
-//translate from zone to RasberryPi GPIO channel
-function zonetoChannel(zone) {
-  return zone;
-  switch (zone) {
-    case 1:
-      return 5;
-    break;
-    case 2:
-      return 1;
-    break;
-    case 3:
-      return 4;
-    break;
-    case 4:
-      return 2;
-    break;
-    case 5:
-      return 6;
-    break
-    case 6:
-      return 3;
-    break;
-    default:
-      return 0;
-  }
+//Request the pico to handle a slider
+function send_slider_command_serial(zone, vol) {
+  port.write([68, zone, vol], function(err) {
+    if (err) {
+      combinedLog("Error on serial write: " + err.message);
+      return;
+    }
+  });
 }
-
-//Remove the annoying volume missing codes from slider targers
+//Remove the annoying volume missing codes from slider targets
 function removeMissingCodes(vol) {
   switch (vol) {
     case 4:
@@ -283,7 +220,6 @@ function removeMissingCodes(vol) {
 		  return vol;
 	}
 }
-
 // logging function
 function combinedLog(message) {
   let curDate = new Date();
