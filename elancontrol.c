@@ -3,6 +3,7 @@
 #include "hardware/uart.h"
 #include "hardware/irq.h"
 #include <sendzpadcommand.pio.h>
+#include <nec_transmit.h>                        // include the library headers
 //Hardware UART Setup
 #define BAUD_RATE 19200
 #define DATA_BITS 8
@@ -39,18 +40,22 @@
 #define CHANNEL_4_SMID 3
 #define CHANNEL_5_SMID 0
 #define CHANNEL_6_SMID 1
+#define IR_PIO pio1
+#define IR_TX_GPIO 16
 //Send a keepalive even if nothing is changing
 //40 bytes in status with 3 bytes as header, 1 in footer (not stored)
 #define STATUS_LEN 35
 #define KEEPALIVE_INTERVAL 50
 #define ZPAD_COMMAND_HEADER 67
 #define SLIDER_COMMAND_HEADER 68
+#define IR_COMMAND_HEADER 66
 #define ELAN_VOLUP  4
 #define ELAN_VOLDOWN 36
 // Global to keep track of same status
 static int identicalStatusRecieved = 0;
 static int sliderTargetVol[6] = {-1,-1,-1,-1,-1,-1};
 static struct statusStruct curStatus;
+static int ir_tx_sm = -1;
 // Constants for status data header and footers
 const char header[] = {0xE0, 0xC0, 0x00, 0x81};
 const char data_footer = 0xEA;
@@ -219,6 +224,11 @@ void initAll() {
   sendzpadcommand_program_init(CHANNEL_4_PIO, CHANNEL_4_SMID, CHANNEL_4_OFFSET, CHANNEL_4_PIN);
   sendzpadcommand_program_init(CHANNEL_5_PIO, CHANNEL_5_SMID, CHANNEL_5_OFFSET, CHANNEL_5_PIN);
   sendzpadcommand_program_init(CHANNEL_6_PIO, CHANNEL_6_SMID, CHANNEL_6_OFFSET, CHANNEL_6_PIN);
+  // configure and enable the state machines
+  int ir_tx_sm = nec_tx_init(IR_PIO, IR_TX_GPIO); // uses two state machines, 16 instructions and one IRQ
+  if (ir_tx_sm == -1) {
+    sendError("could not configure IR PIO\n");
+  }
   // Set up our UART with a basic baud rate.
   uart_init(uart0, 2400);
   // Set the TX and RX pins by using the function select on the GPIO
@@ -282,6 +292,25 @@ void handleSliderReq() {
   sprintf(errstr,"Got a Slider Request, Channel: %d, Vol: %d", channel, volume);
   sendError(errstr);
 }
+
+//Handle an IR request
+void handleIRReq() {
+  uint8_t tx_address, tx_data;
+  if (ir_tx_sm == -1) {
+    sendError("IR Not Setup\n");
+    return;
+  }
+  if ((tx_address = getchar_timeout_us(10000)) == PICO_ERROR_TIMEOUT) {
+    sendError("TX Address Timeout");
+    return;
+  }
+  if ((tx_data = getchar_timeout_us(10000)) == PICO_ERROR_TIMEOUT) {
+    sendError("TX Data Timeout");
+    return;
+  }
+  uint32_t tx_frame = nec_encode_frame(tx_address, tx_data);
+  pio_sm_put_blocking(IR_PIO, ir_tx_sm, tx_frame);
+}
 //Main: init, then infinite loop to handle commands
 int main() {
   int in;
@@ -299,6 +328,8 @@ int main() {
       case SLIDER_COMMAND_HEADER:
         handleSliderReq();
       break;
+      case IR_COMMAND_HEADER:
+        handleIRReq();
       default:
       sendError("Invalid Command");
     }

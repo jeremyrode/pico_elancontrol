@@ -47,6 +47,8 @@ pico_generate_pio_header(elancontrol ${CMAKE_CURRENT_LIST_DIR}/sendzpadcommand.p
 pico_enable_stdio_uart(elancontrol 0)
 pico_enable_stdio_usb(elancontrol 1)
 
+add_subdirectory(nec_transmit_library)
+
 # Add the standard library to the build
 target_link_libraries(elancontrol
         pico_stdlib)
@@ -58,8 +60,9 @@ target_include_directories(elancontrol PRIVATE
 )
 
 # Add any user requested libraries
-target_link_libraries(elancontrol 
+target_link_libraries(elancontrol
         hardware_pio
+        nec_transmit_library
         )
 
 pico_add_extra_outputs(elancontrol)
