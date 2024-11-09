@@ -53,7 +53,7 @@
 #define ELAN_VOLDOWN 36
 // Global to keep track of same status
 static int identicalStatusRecieved = 0;
-static int sliderTargetVol[6] = {-1,-1,-1,-1,-1,-1};
+static int sliderTargetVol[] = {-1,-1,-1,-1,-1,-1};
 static struct statusStruct curStatus;
 static int ir_tx_sm = -1;
 // Constants for status data header and footers
