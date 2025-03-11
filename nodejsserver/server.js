@@ -4,7 +4,7 @@ const { SerialPort } = require('serialport');
 const { DelimiterParser } = require('@serialport/parser-delimiter');
 
 // Optional. You will see this name in eg. 'ps' or 'top' command
-process.title = 'elan-websocket';
+process.title = 'elan-websocket-pico';
 // Port where we'll run the websocket server
 const webSocketsServerPort = 1338;
 const LOG_FILE = '/home/jprode/ElanControlLog.txt';

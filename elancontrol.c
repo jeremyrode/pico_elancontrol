@@ -165,8 +165,8 @@ void handleRXData(unsigned char receivedChars[]) {
   struct statusStruct newStatus;
   newStatus = unPackData(receivedChars);
   if (isStatusDiff(newStatus,curStatus) || identicalStatusRecieved > KEEPALIVE_INTERVAL) {
-    sendData(newStatus);
     curStatus = newStatus;
+    sendData(curStatus);
     handleSliderUpdates(); //Do we care if this happends on timeouts?
   }
 }
