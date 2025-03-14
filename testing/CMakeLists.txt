@@ -24,10 +24,10 @@ pico_add_extra_outputs(pico_jr_testing)
 # add PIO here if needed hardware_pio
 # Others: hardware_flash pico_multicore pico_stdlib tinyusb_device hardware_pio
 
-target_link_libraries(pico_jr_testing pico_stdlib hardware_pio)
+target_link_libraries(pico_jr_testing pico_stdlib)
 
 # If and when PIO used
-pico_generate_pio_header(pico_jr_testing ${CMAKE_CURRENT_LIST_DIR}/rxSerial.pio)
+#pico_generate_pio_header(pico_jr_testing ${CMAKE_CURRENT_LIST_DIR}/rxSerial.pio)
 
 # Control UARTs to STDIO
 pico_enable_stdio_usb(pico_jr_testing 1)
