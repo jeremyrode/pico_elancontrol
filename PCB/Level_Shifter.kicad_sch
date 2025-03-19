@@ -1,12 +1,14 @@
 (kicad_sch
-	(version 20231120)
+	(version 20250114)
 	(generator "eeschema")
-	(generator_version "8.0")
+	(generator_version "9.0")
 	(uuid "9453e739-b214-4b09-b925-cc56c829ed34")
 	(paper "A4")
 	(lib_symbols
 		(symbol "Device:C"
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
 				(offset 0.254)
 			)
@@ -79,7 +81,7 @@
 			(symbol "C_0_1"
 				(polyline
 					(pts
-						(xy -2.032 -0.762) (xy 2.032 -0.762)
+						(xy -2.032 0.762) (xy 2.032 0.762)
 					)
 					(stroke
 						(width 0.508)
@@ -91,7 +93,7 @@
 				)
 				(polyline
 					(pts
-						(xy -2.032 0.762) (xy 2.032 0.762)
+						(xy -2.032 -0.762) (xy 2.032 -0.762)
 					)
 					(stroke
 						(width 0.508)
@@ -140,9 +142,12 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "Device:R"
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
 				(offset 0)
 			)
@@ -261,9 +266,12 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "Transistor_FET:BSS138"
-			(pin_names hide)
+			(pin_names
+				(hide yes)
+			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -336,18 +344,6 @@
 			(symbol "BSS138_0_1"
 				(polyline
 					(pts
-						(xy 0.254 0) (xy -2.54 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
 						(xy 0.254 1.905) (xy 0.254 -1.905)
 					)
 					(stroke
@@ -360,7 +356,19 @@
 				)
 				(polyline
 					(pts
-						(xy 0.762 -1.27) (xy 0.762 -2.286)
+						(xy 0.254 0) (xy -2.54 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 2.286) (xy 0.762 1.27)
 					)
 					(stroke
 						(width 0.254)
@@ -384,34 +392,10 @@
 				)
 				(polyline
 					(pts
-						(xy 0.762 2.286) (xy 0.762 1.27)
+						(xy 0.762 -1.27) (xy 0.762 -2.286)
 					)
 					(stroke
 						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 2.54) (xy 2.54 1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
-					)
-					(stroke
-						(width 0)
 						(type default)
 					)
 					(fill
@@ -442,6 +426,63 @@
 						(type outline)
 					)
 				)
+				(circle
+					(center 1.651 0)
+					(radius 2.794)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 2.54) (xy 2.54 1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.54 1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(circle
+					(center 2.54 -1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
 				(polyline
 					(pts
 						(xy 2.794 0.508) (xy 2.921 0.381) (xy 3.683 0.381) (xy 3.81 0.254)
@@ -466,39 +507,6 @@
 						(type none)
 					)
 				)
-				(circle
-					(center 1.651 0)
-					(radius 2.794)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 2.54 -1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(circle
-					(center 2.54 1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
 			)
 			(symbol "BSS138_1_1"
 				(pin input line
@@ -512,24 +520,6 @@
 						)
 					)
 					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "S"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -555,10 +545,31 @@
 						)
 					)
 				)
+				(pin passive line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "S"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "Transistor_FET:BSS84"
-			(pin_names hide)
+			(pin_names
+				(hide yes)
+			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -631,6 +642,18 @@
 			(symbol "BSS84_0_1"
 				(polyline
 					(pts
+						(xy 0.254 1.905) (xy 0.254 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
 						(xy 0.254 0) (xy -2.54 0)
 					)
 					(stroke
@@ -643,7 +666,31 @@
 				)
 				(polyline
 					(pts
-						(xy 0.254 1.905) (xy 0.254 -1.905)
+						(xy 0.762 2.286) (xy 0.762 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 1.778) (xy 3.302 1.778) (xy 3.302 -1.778) (xy 0.762 -1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 0.508) (xy 0.762 -0.508)
 					)
 					(stroke
 						(width 0.254)
@@ -665,60 +712,11 @@
 						(type none)
 					)
 				)
-				(polyline
-					(pts
-						(xy 0.762 0.508) (xy 0.762 -0.508)
-					)
+				(circle
+					(center 1.651 0)
+					(radius 2.794)
 					(stroke
 						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 2.286) (xy 0.762 1.27)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 2.54) (xy 2.54 1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.762 1.778) (xy 3.302 1.778) (xy 3.302 -1.778) (xy 0.762 -1.778)
-					)
-					(stroke
-						(width 0)
 						(type default)
 					)
 					(fill
@@ -735,6 +733,52 @@
 					)
 					(fill
 						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 2.54) (xy 2.54 1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.54 1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(circle
+					(center 2.54 -1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
 					)
 				)
 				(polyline
@@ -761,39 +805,6 @@
 						(type none)
 					)
 				)
-				(circle
-					(center 1.651 0)
-					(radius 2.794)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(circle
-					(center 2.54 -1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(circle
-					(center 2.54 1.778)
-					(radius 0.254)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
 			)
 			(symbol "BSS84_1_1"
 				(pin input line
@@ -807,24 +818,6 @@
 						)
 					)
 					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "S"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -850,7 +843,26 @@
 						)
 					)
 				)
+				(pin passive line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "S"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "power:+12V"
 			(power)
@@ -928,7 +940,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 0) (xy 0 2.54)
+						(xy 0 2.54) (xy 0.762 1.27)
 					)
 					(stroke
 						(width 0)
@@ -940,7 +952,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 2.54) (xy 0.762 1.27)
+						(xy 0 0) (xy 0 2.54)
 					)
 					(stroke
 						(width 0)
@@ -954,7 +966,8 @@
 			(symbol "+12V_1_1"
 				(pin power_in line
 					(at 0 0 90)
-					(length 0) hide
+					(length 0)
+					(hide yes)
 					(name "+12V"
 						(effects
 							(font
@@ -971,6 +984,7 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "power:GND"
 			(power)
@@ -1050,7 +1064,8 @@
 			(symbol "GND_1_1"
 				(pin power_in line
 					(at 0 0 270)
-					(length 0) hide
+					(length 0)
+					(hide yes)
 					(name "GND"
 						(effects
 							(font
@@ -1067,13 +1082,30 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
+	)
+	(junction
+		(at 95.885 83.82)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "464cdbda-837f-4f3a-8194-0303e251403b")
 	)
 	(junction
 		(at 115.57 77.47)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "75f74630-219f-46cb-9202-89e02f146518")
+	)
+	(wire
+		(pts
+			(xy 95.885 95.25) (xy 95.885 98.425)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0e59fa09-7e24-487a-870d-b87e589bebb2")
 	)
 	(wire
 		(pts
@@ -1117,6 +1149,26 @@
 	)
 	(wire
 		(pts
+			(xy 95.885 83.82) (xy 95.885 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "91f57de7-db70-4b79-8891-d727c3f3d425")
+	)
+	(wire
+		(pts
+			(xy 85.725 83.82) (xy 95.885 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "997bb0d3-b79e-495e-a1bb-5744e0d56640")
+	)
+	(wire
+		(pts
 			(xy 115.57 77.47) (xy 115.57 78.74)
 		)
 		(stroke
@@ -1157,6 +1209,16 @@
 	)
 	(wire
 		(pts
+			(xy 95.885 83.82) (xy 107.95 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e14ca6fb-08f1-47ae-b889-f537d5dc4520")
+	)
+	(wire
+		(pts
 			(xy 115.57 76.2) (xy 115.57 77.47)
 		)
 		(stroke
@@ -1178,7 +1240,6 @@
 	(hierarchical_label "out"
 		(shape output)
 		(at 149.86 99.06 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1189,8 +1250,7 @@
 	)
 	(hierarchical_label "in"
 		(shape input)
-		(at 107.95 83.82 180)
-		(fields_autoplaced yes)
+		(at 85.725 83.82 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1252,6 +1312,15 @@
 				(hide yes)
 			)
 		)
+		(property "JL Part#" "C17513"
+			(at 115.57 72.39 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "7d803a7b-6c11-43b7-b2fb-e200d7113b9e")
 		)
@@ -1282,6 +1351,92 @@
 				)
 				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/fb9ae5cf-bc4b-41da-8279-cd1d6324f41b"
 					(reference "R5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 95.885 98.425 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "22bfdb1b-aa68-4d3c-b9f2-33939f89112e")
+		(property "Reference" "#PWR044"
+			(at 95.885 104.775 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 95.885 102.235 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 95.885 98.425 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 95.885 98.425 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 95.885 98.425 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "8303dddd-9f99-499e-9652-b1a422ebb256")
+		)
+		(instances
+			(project "elan_interface"
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/000f1dfc-ea3b-49ea-b88b-d02ff722ccd3"
+					(reference "#PWR048")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/13698bf4-e64b-4450-a220-05cb49b473c2"
+					(reference "#PWR045")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/302ced3f-229a-444d-8653-644c90189abd"
+					(reference "#PWR049")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/8a9ff4ab-8a14-4516-8bf5-22628e06dff1"
+					(reference "#PWR047")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/d83be152-3f51-4029-8901-ae5284cb0c3f"
+					(reference "#PWR044")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/fb9ae5cf-bc4b-41da-8279-cd1d6324f41b"
+					(reference "#PWR046")
 					(unit 1)
 				)
 			)
@@ -1391,7 +1546,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "C"
+		(property "Value" "10uF"
 			(at 160.655 80.01 0)
 			(effects
 				(font
@@ -1419,6 +1574,15 @@
 			)
 		)
 		(property "Description" ""
+			(at 160.02 77.47 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JL Part#" "C15850"
 			(at 160.02 77.47 0)
 			(effects
 				(font
@@ -1653,7 +1817,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "BSS84"
+		(property "Value" "AO3401A"
 			(at 139.7 77.47 0)
 			(effects
 				(font
@@ -1673,7 +1837,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "http://assets.nexperia.com/documents/data-sheet/BSS84.pdf"
+		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8553305450243108864"
 			(at 134.62 77.47 0)
 			(effects
 				(font
@@ -1683,7 +1847,16 @@
 				(hide yes)
 			)
 		)
-		(property "Description" ""
+		(property "Description" "30V 4A 44mΩ@10V,4.3A 1.4W 1.3V@250uA 1 Piece P-Channel SOT-23 MOSFETs"
+			(at 134.62 77.47 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JL Part#" "C15127"
 			(at 134.62 77.47 0)
 			(effects
 				(font
@@ -1869,6 +2042,15 @@
 				(hide yes)
 			)
 		)
+		(property "JL Part#" "C17408"
+			(at 146.05 99.06 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "22792730-eb54-4fa4-8596-5c56bfbde919")
 		)
@@ -1923,7 +2105,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "BSS138"
+		(property "Value" "2N7002"
 			(at 118.11 83.82 0)
 			(effects
 				(font
@@ -1943,7 +2125,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://www.onsemi.com/pub/Collateral/BSS138-D.PDF"
+		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8550724090244980736"
 			(at 113.03 83.82 0)
 			(effects
 				(font
@@ -1953,7 +2135,16 @@
 				(hide yes)
 			)
 		)
-		(property "Description" ""
+		(property "Description" "60V 115mA 200mW 7.5Ω@10V,500mA 2.5V@250uA 1 N-Channel SOT-23 MOSFETs"
+			(at 113.03 83.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JL Part#" "C8545"
 			(at 113.03 83.82 0)
 			(effects
 				(font
@@ -1995,6 +2186,103 @@
 				)
 				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/fb9ae5cf-bc4b-41da-8279-cd1d6324f41b"
 					(reference "Q5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 95.885 91.44 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "cd8e1bd1-a955-4a55-800c-75d0a02c712c")
+		(property "Reference" "R15"
+			(at 93.853 91.44 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "10k"
+			(at 95.885 91.44 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 97.663 91.44 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 95.885 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 95.885 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JL Part#" "C17414"
+			(at 95.885 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "ee3294a3-dcea-44e8-877f-7ad51d9dcdcb")
+		)
+		(pin "2"
+			(uuid "97b9d72d-92f1-4696-a9cb-b64b15573ec9")
+		)
+		(instances
+			(project "elan_interface"
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/000f1dfc-ea3b-49ea-b88b-d02ff722ccd3"
+					(reference "R19")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/13698bf4-e64b-4450-a220-05cb49b473c2"
+					(reference "R16")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/302ced3f-229a-444d-8653-644c90189abd"
+					(reference "R20")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/8a9ff4ab-8a14-4516-8bf5-22628e06dff1"
+					(reference "R18")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/d83be152-3f51-4029-8901-ae5284cb0c3f"
+					(reference "R15")
+					(unit 1)
+				)
+				(path "/b6711ac3-1147-40d6-a1b5-fabaf94a1a0c/fb9ae5cf-bc4b-41da-8279-cd1d6324f41b"
+					(reference "R17")
 					(unit 1)
 				)
 			)
