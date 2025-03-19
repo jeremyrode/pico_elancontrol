@@ -57,7 +57,7 @@ static int sliderTargetVol[] = {-1,-1,-1,-1,-1,-1};
 static struct statusStruct curStatus;
 static int ir_tx_sm = -1;
 // Constants for status data header and footers
-const char header[] = {0xE0, 0xC0, 0x00, 0x81};
+const char header[] = {0xE0, 0x00, 0x00, 0x81};
 const char data_footer = 0xEA;
 const char err_footer = 0xEF;
 const int zoneToChannel[] = {5, 1, 4, 2, 6, 3}; // Zone to channel (depends on how plugs are ordered)
@@ -174,6 +174,7 @@ void handleRXData(unsigned char receivedChars[]) {
 void on_uart_rx() {
   char cur_rx;
   //Statics to keep track between interrupts
+  static int numErr = 0;
   static int charsRXed = 0;
   static bool identical = true; // Keep track if pattern is identical
   static unsigned char receivedChars[STATUS_LEN];   // an array to store the received data
@@ -200,9 +201,13 @@ void on_uart_rx() {
       }
       charsRXed = 0; //Reset chars recieved counter
       identical = true; //Reset identical flag
+      numErr = 0;
     }
     else { //We did not match expected data pattern
-      sendError("Malformatted Serial Status Message");
+      if (numErr++ > 100) {
+        sendError("FYI, 100 serial errors in a row");
+        numErr = 0;
+      }      
       charsRXed = 0; //Reset counter
       identical = true; //Reset identical
     }
