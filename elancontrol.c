@@ -81,7 +81,7 @@ void sendError(const char *errString) {
 struct statusStruct unPackData(unsigned char receivedChars[]) {
   struct statusStruct status;
   for (int i=0; i < 6; i++) {
-    status.volume[i] = 48 - receivedChars[i*6+2] & 0b00111111; //Volume is sent as a 6-bit attenuation value in LSBs
+    status.volume[i] = (48 - receivedChars[i*6+2]) & 0b00111111; //Volume is sent as a 6-bit attenuation value in LSBs
     status.mute[i] = (receivedChars[i*6] & 0b00010000) >> 4; // Mute is just a bit
     status.input[i] = receivedChars[i*6] & 0b00000111; // Status is 3 LSBs
   }
@@ -95,7 +95,7 @@ bool isStatusDiff(struct statusStruct data1, struct statusStruct data2) {
       is_diff = is_diff || (data1.mute[i] != data2.mute[i]);
       is_diff = is_diff || (data1.input[i] != data2.input[i]);
   }
-  return true;
+  return is_diff;
 }
 //Send commands to PIO state machines
 void sentZPadCommand(int channel, int command) {
@@ -129,15 +129,15 @@ void sentZPadCommand(int channel, int command) {
 }
 //Handle slider updates
 void handleSliderUpdates () {
-  for (int i; i < 6; i++) {
-    if (sliderTargetVol[i] > 0) {
+  for (int i = 0; i < 6; i++) {
+    if (sliderTargetVol[i] != -1) {
       if (sliderTargetVol[i] > curStatus.volume[i]) {
-        sentZPadCommand(i, ELAN_VOLUP);
-        sentZPadCommand(i, ELAN_VOLUP);
+        sentZPadCommand(i + 1, ELAN_VOLUP);
+        sentZPadCommand(i + 1, ELAN_VOLUP);
       }
       else if (sliderTargetVol[i] < curStatus.volume[i]) {
-        sentZPadCommand(i, ELAN_VOLDOWN);
-        sentZPadCommand(i, ELAN_VOLDOWN);
+        sentZPadCommand(i + 1, ELAN_VOLDOWN);
+        sentZPadCommand(i + 1, ELAN_VOLDOWN);
       }
       else {
         sliderTargetVol[i] = -1; //We're done
@@ -185,12 +185,13 @@ void on_uart_rx() {
       charsRXed++;
     }
     else if (charsRXed > 3 && charsRXed < 39) { //Data payload
-        receivedChars[charsRXed - 4] = cur_rx;
-        charsRXed++;
-        if (receivedChars[charsRXed - 4] != lastBuffer[charsRXed - 4]) {
-          lastBuffer[charsRXed - 4] = receivedChars[charsRXed - 4]; //Copy
+        int idx = charsRXed - 4;
+        receivedChars[idx] = cur_rx;
+        if (receivedChars[idx] != lastBuffer[idx]) {
+          lastBuffer[idx] = receivedChars[idx]; //Copy
           identical = false; //We are not identical
         }
+        charsRXed++;
     }
     else if (charsRXed == 39 && cur_rx == data_footer) { //End of data payload
       if (identical && identicalStatusRecieved <= KEEPALIVE_INTERVAL) {
@@ -230,7 +231,7 @@ void initAll() {
   sendzpadcommand_program_init(CHANNEL_5_PIO, CHANNEL_5_SMID, CHANNEL_5_OFFSET, CHANNEL_5_PIN);
   sendzpadcommand_program_init(CHANNEL_6_PIO, CHANNEL_6_SMID, CHANNEL_6_OFFSET, CHANNEL_6_PIN);
   // configure and enable the state machines
-  int ir_tx_sm = nec_tx_init(IR_PIO, IR_TX_GPIO); // uses two state machines, 16 instructions and one IRQ
+  ir_tx_sm = nec_tx_init(IR_PIO, IR_TX_GPIO); // uses two state machines, 16 instructions and one IRQ
   if (ir_tx_sm == -1) {
     sendError("could not configure IR PIO\n");
   }
@@ -266,6 +267,7 @@ void handleZPADCommand() {
     sendError("Command Timeout");
     return;
   }
+  channel = zoneToChannel[channel - 1]; // Map the logical zone byte to physical channel
   sentZPadCommand(channel, command);
   if (command == ELAN_VOLUP || command == ELAN_VOLDOWN) {
     sentZPadCommand(channel, command); // Volume commands should be doubled
@@ -284,13 +286,13 @@ void handleSliderReq() {
     sendError("Volume Timeout");
     return;
   }
-  channel = zoneToChannel[zone];
-  sliderTargetVol[channel] = volume; //set the target
-  if (volume < curStatus.volume[channel]) {
+  channel = zoneToChannel[zone - 1]; // Node sends zone 1-6. Subtract 1 for array range 0-5.
+  sliderTargetVol[channel - 1] = volume; //set the target
+  if (volume > curStatus.volume[channel - 1]) {
     sentZPadCommand(channel, ELAN_VOLUP);
     sentZPadCommand(channel, ELAN_VOLUP);
   }
-  else {
+  else if (volume < curStatus.volume[channel - 1]) {
     sentZPadCommand(channel, ELAN_VOLDOWN);
     sentZPadCommand(channel, ELAN_VOLDOWN);
   }
@@ -335,8 +337,9 @@ int main() {
       break;
       case IR_COMMAND_HEADER:
         handleIRReq();
+        break;
       default:
-      sendError("Invalid Command");
+        sendError("Invalid Command");
     }
   }
 }
